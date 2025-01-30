@@ -29,7 +29,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t hello-world:latest .\docker-images
+          docker build -t hello-world:latest ./docker-images
 
       - name: Scan Docker image (trivy)
         id: trivy-scan

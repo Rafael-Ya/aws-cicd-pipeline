@@ -35,11 +35,8 @@ jobs:
         id: trivy-scan
         continue-on-error: true
         run: |
-          sudo apt-get update
-          sudo apt-get install wget
-          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_Linux-64bit.tar.gz
-          tar zxvf trivy_Linux-64bit.tar.gz
-          sudo mv trivy /usr/local/bin/
+          wget https://github.com/aquasecurity/trivy/releases/download/v0.18.3/trivy_0.18.3_Linux-64bit.deb
+          sudo dpkg -i trivy_0.18.3_Linux-64bit.deb
           trivy image --exit-code 1 --severity CRITICAL,HIGH hello-world:latest
 
       - name: Fail if vulnerabilities found

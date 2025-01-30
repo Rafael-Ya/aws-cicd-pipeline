@@ -1,0 +1,55 @@
+name: Build Docker Image, Scan and Push to Docker Hub
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write # Required for AWS Role assumtion
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ variables.AWS_REGION }}
+
+      - name: login to Amazon ECR
+        id: login-ecr
+        run: aws-acrtions/amazon-ecr-login@v1
+
+      - name: Build Docker image
+        run: |
+          docker build -t hello-world:latest .\docker-images
+
+      - name: Scan Docker image (trivy)
+        id: trivy-scan
+        continue-on-error: true
+        run: |
+          sudo apt-get update
+          sudo apt-get install wget
+          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_Linux-64bit.tar.gz
+          tar zxvf trivy_Linux-64bit.tar.gz
+          sudo mv trivy /usr/local/bin/
+          trivy image --exit-code 1 --severity CRITICAL,HIGH hello-world:latest
+
+      - name: Fail if vulnerabilities found
+        if: steps.trivy-scan.outcome == 'failure'
+        run: |
+          echo "Vulnerabilities found in the Docker image. Please fix them before pushing to ECR."
+          exit 1
+
+      - name: Tag Docker image and push to Amazon ECR
+        if: steps.trivy-scan.outcome == 'success'
+        run: |
+          ECR_REPO_URI="${{ steps.login-ecr.outputs.registry }}/${{ secrets.AWS_ECR_REPO_NAME }}"
+          docker tag hello-world:latest $ECR_REPO_URI:latest
+          docker push $ECR_REPO_URI:latest

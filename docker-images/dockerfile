@@ -1,0 +1,21 @@
+FROM python:3.7-slim
+
+# Set the working directory in the container
+
+WORKDIR /app
+
+# copy the app file to the container at /app
+
+COPY app.py /app
+
+# Install Flask
+
+RUN pip install flask
+
+# Make port 80 available to the world outside this container
+
+EXPOSE 80
+
+# Run Flask when the container launches
+
+CMD [ "python3", "app.py" ]
